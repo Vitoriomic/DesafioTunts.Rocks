@@ -12,3 +12,6 @@ from google.auth import default
 creds, _ = default()
 
 gc = gspread.authorize(creds)
+
+Obs.: O arquivo ".ipynb" pelo github acaba ficando sem as indentações,
+então para um entendimento melhor ele tambem estara disponivel em um arquivo ".txt".
