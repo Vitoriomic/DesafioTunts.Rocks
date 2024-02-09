@@ -1,0 +1,78 @@
+!pip install --upgrade gspread
+
+from google.colab import auth
+auth.authenticate_user()
+
+import gspread
+from google.auth import default
+creds, _ = default()
+
+gc = gspread.authorize(creds)
+
+spreadsheet = gc.open('Engenharia de Software - Desafio [VITÓRIO VICENTE MICHELETTO]')
+page = spreadsheet.sheet1
+
+# Defining constants
+TOTAL_COLS = 8  # Total number of columns
+NUM_CLASSES_ROW = 2  # Row where the total number of classes is located
+NUM_CLASSES_COL = 3  # Column where the total number of classes is located
+REGISTRATION_COL = 1  # Registration column
+NAME_COL = 2  # Name column
+ABSENCES_COL = 3  # Absences column
+MIDTERM1_COL = 4  # Midterm 1 grade column
+MIDTERM2_COL = 5  # Midterm 2 grade column
+MIDTERM3_COL = 6  # Midterm 3 grade column
+STATUS_COL = 7  # Status column
+FINAL_GRADE_COL = 8  # Final grade column
+
+# Getting the total number of classes
+num_classes = int(page.cell(NUM_CLASSES_ROW, NUM_CLASSES_COL).value)
+
+# Defining a dictionary for mapping grades to status
+status_map = {
+    "Reprovado por Nota": "Reprovado por Nota",
+    "Reprovado por Falta": "Reprovado por Falta",
+    "Exame Final": "Exame Final",
+    "Aprovado": "Aprovado"
+}
+
+# Iterating over rows of the spreadsheet starting from row 4 (after the information)
+for row_num in range(4, page.row_count + 1):
+    # Getting cell values
+    registration = page.cell(row_num, REGISTRATION_COL).value
+    name = page.cell(row_num, NAME_COL).value
+    absences = int(page.cell(row_num, ABSENCES_COL).value)
+    midterm1 = float(page.cell(row_num, MIDTERM1_COL).value) * 0.10
+    midterm2 = float(page.cell(row_num, MIDTERM2_COL).value) * 0.10
+    midterm3 = float(page.cell(row_num, MIDTERM3_COL).value) * 0.10
+
+    # Calculating average
+    average = (midterm1 + midterm2 + midterm3) / 3
+
+    # Calculating absence percentage
+    abs_percentage = absences / num_classes
+
+    # Setting initial status
+    status = status_map["Aprovado"]
+
+    # Checking if failed by absence
+    if abs_percentage > 0.25:
+        status = status_map["Reprovado por Falta"]
+    # Checking if failed by grade
+    elif average < 5:
+        status = status_map["Reprovado por Nota"]
+    # Checking if needs final exam
+    elif average < 7:
+        status = status_map["Exame Final"]
+
+    # Calculating final grade (if necessary)
+    final_grade = 0
+    if status == status_map["Exame Final"]:
+        final_grade = round(10 - average)
+
+    # Writing values to cells
+    page.update_cell(row_num, STATUS_COL, status)
+    page.update_cell(row_num, FINAL_GRADE_COL, final_grade)
+
+# Saving changes
+spreadsheet.save()
